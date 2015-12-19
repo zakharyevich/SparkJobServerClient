@@ -37,8 +37,8 @@ public interface ISparkJobServerClientConstants {
 	 * <p>
 	 * It is equivalent to <code>PARAM_SPARK_EXECUTOR_MEMORY</code>.
 	 */
-	String PARAM_MEM_PER_NODE = "mem-per-node";
-	
+	String PARAM_MEM_PER_NODE = "memory-per-node";
+
 	/**
 	 * Parameter used to create job context, indicates the number of memeory
 	 * for each spark job executor.

@@ -3,8 +3,6 @@ package org.khaleesi.carfield.tools.sparkjobserver.api;
 import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -22,6 +20,8 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -89,7 +89,7 @@ class SparkJobServerClientImpl implements ISparkJobServerClient {
 	/**
 	 * {@inheritDoc}
 	 */
-	public boolean uploadSparkJobJar(InputStream jarData, String appName)  
+	public boolean uploadSparkJobJar(InputStream jarData, String appName)
 	    throws SparkJobServerClientException {
 		if (jarData == null || appName == null || appName.trim().length() == 0) {
 			throw new SparkJobServerClientException("Invalid parameters.");
@@ -118,25 +118,30 @@ class SparkJobServerClientImpl implements ISparkJobServerClient {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
 	public boolean uploadSparkJobJar(File jarFile, String appName)
-		    throws SparkJobServerClientException {
-		if (jarFile == null || !jarFile.getName().endsWith(".jar") 
-			|| appName == null || appName.trim().length() == 0) {
+			throws SparkJobServerClientException {
+		if (jarFile == null || !jarFile.getName().endsWith(".jar")
+				|| appName == null || appName.trim().length() == 0) {
 			throw new SparkJobServerClientException("Invalid parameters.");
 		}
-		InputStream jarIn = null;
+		FileEntity reqEntity = new FileEntity(jarFile, ContentType.DEFAULT_BINARY);
+		HttpPost postMethod = new HttpPost(jobServerUrl + "jars/" + appName);
+		postMethod.setEntity(reqEntity);
+		System.out.println("executing request " + postMethod.getRequestLine());
 		try {
-			jarIn = new FileInputStream(jarFile);
-		} catch (FileNotFoundException fnfe) {
-			String errorMsg = "Error occurs when getting stream of the given jar file";
-			logger.error(errorMsg, fnfe);
-			throw new SparkJobServerClientException(errorMsg, fnfe);
+			HttpResponse response = httpClient.execute(postMethod);
+			int statusCode = response.getStatusLine().getStatusCode();
+			getResponseContent(response.getEntity());
+			if (statusCode == HttpStatus.SC_OK) return true;
+		} catch (Exception e) {
+			logger.error("Error occurs when uploading spark job jars:", e);
+		} finally {
+			return false;
 		}
-		return uploadSparkJobJar(jarIn, appName);
 	}
 
 	/**
